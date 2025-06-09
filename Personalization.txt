@@ -1,0 +1,878 @@
+openapi: 3.0.0
+info:
+  title: PBC Personalization Context Profile API
+  version: 0.0.1
+  contact:
+    email: samarth.kasbawala@evernorth.com
+    name: Sam Kasbawala
+  description: >
+    Responsible for providing the context profile for a user.
+    The context profile is designed contain insightful information about the user, such as recent interactions, preferences, historical context and other relevant data.
+    This information can be used to personalize the user experience and provide relevant recommendations.
+    The API is designed to be flexible and extensible, allowing for the addition of new features and functionality as needed.
+
+tags:
+  - name: clinical
+    description: Operations related to clinical data and claims history.
+  - name: engagement
+    description: Operations related to user engagement and preferences.
+  - name: interactions
+    description: Operations related to managing user interactions.
+
+servers:
+  - url: https://api-dev.aws.internal.evernorth.io/pbc/personalization
+    description: Development environment Evernorth Gateway
+  - url: https://api-qa.aws.internal.evernorth.io/pbc/personalization
+    description: Test environment Evernorth Gateway
+  - url: https://api.internal.evernorth.io/pbc/personalization
+    description: Production environment Evernorth Gateway
+  - url: https://internalapi-dev.express-scripts.io/pbc/personalization
+    description: Development environment Express Scripts Gateway
+  - url: https://internalapi-qa.express-scripts.io/pbc/personalization
+    description: Test environment Express Scripts Gateway
+  - url: https://internalapi.express-scripts.io/pbc/personalization
+    description: Production environment Express Scripts Gateway
+security:
+  - Bearer: []
+
+components:
+  schemas:
+    interaction:
+      type: object
+      properties:
+        interactionId:
+          type: string
+          description: Unique identifier for the interaction.
+        additionalUserIdentifiers:
+          type: array
+          items:
+            type: object
+            $ref: "#/components/schemas/additionalUserIdentifier"
+        interactionDetails:
+          type: object
+          $ref: "#/components/schemas/interactionDetails"
+        interactionMetadata:
+          type: object
+          $ref: "#/components/schemas/interactionMetadata"
+        interactionType:
+          type: string
+          description: Type of interaction (e.g., click, view).
+        primaryUserId:
+          type: string
+          description: Primary identifier for the user.
+        primaryUserIdType:
+          type: string
+          description: Type of the primary identifier (e.g., ssoId, memberId).
+          enum:
+            - ssoId
+            - memberId
+            - personResourceId
+      required:
+        - interactionId
+        - interactionDetails
+        - interactionMetadata
+        - primaryUserId
+        - interactionType
+        - primaryUserIdType
+
+    additionalUserIdentifier:
+      type: object
+      properties:
+        identifier:
+          type: string
+          description: Additional identifier for the user.
+        typeDescription:
+          type: string
+          description: Description of the identifier type.
+      required:
+        - identifier
+        - typeDescription
+
+    interactionDetails:
+      type: object
+      description: Details of the interaction. Must be valid JSON.
+
+    interactionMetadata:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: Date and time of the interaction.
+        channel:
+          type: string
+          description: Channel through which the interaction occurred (e.g., web, mobile).
+        communicationDirection:
+          type: string
+          description: Direction of the communication (e.g., inbound, outbound).
+        path:
+          type: string
+          description: Path of the interaction (e.g., URL).
+        point:
+          type: string
+          description: Point of interaction (e.g., landing page).
+        result:
+          type: string
+          description: Result of the interaction (e.g., success, failure, event).
+      required:
+        - date
+        - channel
+        - communicationDirection
+        - path
+        - point
+        - result
+
+    error:
+      required:
+        - code
+        - details
+        - message
+      properties:
+        code:
+          description: failure code.
+          type: string
+        details:
+          description: |-
+            list of errors with details
+          type: array
+          items:
+            type: object
+            properties:
+              "type":
+                description: failure type
+                type: string
+              "additionalInfo":
+                description: additional information
+                type: object
+                properties:
+                  target:
+                    description: target system
+                    type: string
+                  "type":
+                    description: failure type
+                    type: string
+        message:
+          description: failure message
+          type: string
+
+    post-interaction-response:
+      type: object
+      properties:
+        interactionId:
+          type: string
+          description: Unique identifier for the interaction.
+      description: >
+        Response schema for creating user interactions.
+        Contains an array of interaction objects.
+      required:
+        - interactionId
+
+    clinical:
+      type: object
+      properties:
+        claimsHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Unique identifier for the claim.
+              claimDecision:
+                type: string
+                description: Decision made on the claim.
+              claimOutcome:
+                type: string
+                description: Outcome of the claim.
+              billedTotal:
+                type: number
+                format: float
+                description: Total amount billed.
+              coveredTotal:
+                type: number
+                format: float
+                description: Total amount covered.
+              memberLiabilityTotal:
+                type: number
+                format: float
+                description: Total liability for the member.
+              remainingMemberLiabilityTotal:
+                type: number
+                format: float
+                description: Remaining liability for the member.
+              appliedToDeductibleTotal:
+                type: number
+                format: float
+                description: Amount applied to the deductible.
+              memberCoInsuranceTotal:
+                type: number
+                format: float
+                description: Total co-insurance amount for the member.
+              memberCopayTotal:
+                type: number
+                format: float
+                description: Total copay amount for the member.
+              paymentDate:
+                type: string
+                format: date
+                description: Date of payment.
+              autoPayment:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    accountType:
+                      type: string
+                      description: Type of account used for auto-payment.
+                    amountPaid:
+                      type: number
+                      format: float
+                      description: Amount paid via auto-payment.
+              instaMedPayment:
+                type: number
+                format: float
+                description: Payment made via InstaMed.
+              providerInstaMedRegistered:
+                type: string
+                description: InstaMed registration status of the provider.
+
+    engagement:
+      type: object
+      properties:
+        modalityPreference:
+          type: array
+          items:
+            $ref: "#/components/schemas/modalityPreference"
+
+    modalityPreference:
+      type: array
+      items:
+        type: object
+        properties:
+          preferenceType:
+            type: string
+            description: Type of preference for engagement (e.g., PREFERRED_PHONE_NUMBER, PREFERRED_EMAIL, etc).
+          preferenceAttributes:
+            type: array
+            items:
+              $ref: "#/components/schemas/preferenceAttributes"
+
+    preferenceAttributes:
+      type: object
+      properties:
+        contactType:
+          type: string
+          description: Type of contact (e.g., phone, email).
+        contactValue:
+          type: string
+          description: Value of the contact (e.g., phone number, email address).
+        status:
+          type: string
+          description: Status of the contact (e.g., active, inactive).
+        channelCode:
+          type: string
+          description: Code for the channel
+        changeTimestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the last change made to the preference.
+        operatorId:
+          type: string
+      required:
+        - contactType
+        - contactValue
+        - status
+        - channelCode
+        - changeTimestamp
+        - operatorId
+
+paths:
+  /v1/profile/{id}/interactions:
+    get:
+      tags:
+        - interactions
+      summary: Get User Interactions
+      description: >
+        Retrieves the interactions of a user based on their unique identifier.
+        Interactions come from various digital assets.
+      operationId: get-user-interactions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+        - description: Type of the primary identifier, e.g. ssoId
+          required: false
+          explode: false
+          in: query
+          name: primaryUserIdType
+          schema:
+            default: ssoId
+            description: Type of the primary identifier.
+            enum:
+              - ssoId
+              - memberId
+              - personResourceId
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  interactions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/interaction"
+              example:
+                [
+                  {
+                    "interactionId": "test_userBehavioralBrighterMatchRequest2025-04-02T12:00:00.000Z",
+                    "interactionDetails":
+                      {
+                        "assessmentId": "544cfdfe-5877-4951-8c30-c443eaf88829",
+                        "assessmentType": "BehavioralBrighterMatchRequest",
+                        "assessmentValues":
+                          {
+                            "consumerCode": "HDC002",
+                            "city": "Los Angeles",
+                            "stateCode": "CA",
+                            "zipCode": "90012",
+                            "searchLocation": "Los Angeles, CA",
+                            "latitude": "34.05876889",
+                            "longitude": "-118.2418678",
+                            "searchTerm": "Behavioral Health Counselor",
+                            "providerGroupCodes": "B",
+                            "specialtyCode": "SW,PJ,CN,BN,PY",
+                          },
+                        "responses":
+                          {
+                            "coverageCodes": "A,E",
+                            "clinicalSpecialtyCodes": "DD,TO,TH,AA,AI,AF,AM,AB,AG,AT,AR,BP,BF,BD,BR,CD,CE,DL,DB,DS,DV,ED,EC,CC,FB,FY,FI,FR,GA,GI,AX,DR,GR,GT,HV,LD,MC,ML,MO,MI,NT,OC,PM,PA,PH,MH,PT,MJ,MM,PS,PD,SI,SD,SO,GL,TM,WI",
+                            "therapyType": "individual",
+                            "memberAgeSelectionIndicator": "true",
+                            "memberAge": "default",
+                            "memberGenderSelectionIndicator": "true",
+                            "memberGender": "default",
+                            "focusIssues": "skip",
+                            "providerType": "default",
+                            "careModality": "default",
+                            "providerGenderSelectionIndicator": "true",
+                            "providerGender": "default",
+                            "providerAgeSelectionIndicator": "true",
+                            "providerAge": "default",
+                            "vendorCategoryId": "93308",
+                            "virtualOnlyIndicator": "false",
+                            "choiceScreenIndicator": "true",
+                            "memberGenderCategoryId": "104100",
+                            "providerAgeCategoryId": "104079",
+                          },
+                        "responseDate": "2025-04-02T12:00:00.000Z",
+                      },
+                    "interactionMetadata":
+                      {
+                        "date": "2025-04-02T12:00:00.000Z",
+                        "channel": "web",
+                        "communicationDirection": "memberToEntity",
+                        "path": "test",
+                        "point": "populateBMProviderListing",
+                        "result": "clicked",
+                      },
+                    "interactionType": "assessmentResponses",
+                    "primaryUserId": "test_user",
+                    "primaryUserIdType": "ssoId",
+                  },
+                ]
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "BAD_REQUEST",
+                  "details":
+                    [
+                      {
+                        "type": "APPLICATION",
+                        "additionalInfo":
+                          {
+                            "code": "VALIDATION_FAILED",
+                            "details":
+                              [
+                                {
+                                  "type": "APPLICATION",
+                                  "target": "Validation",
+                                  "additionalInfo":
+                                    {
+                                      "namespace": "GetInteractionsInputPayload.PrimaryUserId",
+                                      "field": "PrimaryUserId",
+                                      "structNamespace": "GetInteractionsInputPayload.PrimaryUserId",
+                                      "structField": "PrimaryUserId",
+                                      "tag": "required",
+                                      "actualTag": "required",
+                                      "kind": "string",
+                                      "type": "string",
+                                      "value": "",
+                                      "param": "",
+                                      "message": "Key: 'GetInteractionsInputPayload.PrimaryUserId' Error:Field validation for 'PrimaryUserId' failed on the 'required' tag",
+                                    },
+                                },
+                                {
+                                  "type": "APPLICATION",
+                                  "target": "Validation",
+                                  "additionalInfo":
+                                    {
+                                      "namespace": "GetInteractionsInputPayload.PrimaryUserIdType",
+                                      "field": "PrimaryUserIdType",
+                                      "structNamespace": "GetInteractionsInputPayload.PrimaryUserIdType",
+                                      "structField": "PrimaryUserIdType",
+                                      "tag": "oneof",
+                                      "actualTag": "oneof",
+                                      "kind": "string",
+                                      "type": "domain.PrimaryUserIdType",
+                                      "value": "bad",
+                                      "param": "ssoId memberId personResourceId",
+                                      "message": "Key: 'GetInteractionsInputPayload.PrimaryUserIdType' Error:Field validation for 'PrimaryUserIdType' failed on the 'oneof' tag",
+                                    },
+                                },
+                              ],
+                            "message": "payload validation",
+                          },
+                      },
+                    ],
+                  "message": "validation failed",
+                }
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "Forbidden",
+                  "details":
+                    [
+                      {
+                        "type": "APPLICATION",
+                        "additionalInfo":
+                          { "type": "AUTH0", "target": "INTERNAL_API" },
+                      },
+                    ],
+                  "message": "",
+                }
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+                example:
+                  {
+                    "code": "SERVICE_FAILURE",
+                    "details": [{ "type": "APPLICATION" }],
+                    "message": "validation failed",
+                  }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+                example:
+                  {
+                    "code": "SERVICE_FAILURE",
+                    "details": [{ "type": "APPLICATION" }],
+                    "message": "internal server error",
+                  }
+
+  /v1/profile/interactions:
+    post:
+      tags:
+        - interactions
+      summary: Create User Interactions
+      description: >
+        Creates a new interaction for a user based on their unique identifier.
+        Interactions come from various digital assets.
+      operationId: create-user-interactions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              $ref: "#/components/schemas/interaction"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/post-interaction-response"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "BAD_REQUEST",
+                  "details":
+                    [
+                      {
+                        "type": "APPLICATION",
+                        "additionalInfo":
+                          {
+                            "code": "VALIDATION_FAILED",
+                            "details":
+                              [
+                                {
+                                  "type": "APPLICATION",
+                                  "target": "Validation",
+                                  "additionalInfo":
+                                    {
+                                      "namespace": "InteractionsInputPayload.Body.AdditionalUserIdentifiers[0].Identifier",
+                                      "field": "Identifier",
+                                      "structNamespace": "InteractionsInputPayload.Body.AdditionalUserIdentifiers[0].Identifier",
+                                      "structField": "Identifier",
+                                      "tag": "required",
+                                      "actualTag": "required",
+                                      "kind": "string",
+                                      "type": "string",
+                                      "value": "",
+                                      "param": "",
+                                      "message": "Key: 'InteractionsInputPayload.Body.AdditionalUserIdentifiers[0].Identifier' Error:Field validation for 'Identifier' failed on the 'required' tag",
+                                    },
+                                },
+                                {
+                                  "type": "APPLICATION",
+                                  "target": "Validation",
+                                  "additionalInfo":
+                                    {
+                                      "namespace": "InteractionsInputPayload.Body.InteractionMetadata.Result",
+                                      "field": "Result",
+                                      "structNamespace": "InteractionsInputPayload.Body.InteractionMetadata.Result",
+                                      "structField": "Result",
+                                      "tag": "required",
+                                      "actualTag": "required",
+                                      "kind": "string",
+                                      "type": "string",
+                                      "value": "",
+                                      "param": "",
+                                      "message": "Key: 'InteractionsInputPayload.Body.InteractionMetadata.Result' Error:Field validation for 'Result' failed on the 'required' tag",
+                                    },
+                                },
+                              ],
+                            "message": "payload validation",
+                          },
+                      },
+                    ],
+                  "message": "validation failed",
+                }
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "Forbidden",
+                  "details":
+                    [
+                      {
+                        "type": "APPLICATION",
+                        "additionalInfo":
+                          { "type": "AUTH0", "target": "INTERNAL_API" },
+                      },
+                    ],
+                  "message": "",
+                }
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+                example:
+                  {
+                    "code": "SERVICE_FAILURE",
+                    "details": [{ "type": "APPLICATION" }],
+                    "message": "validation failed",
+                  }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+                example:
+                  {
+                    "code": "SERVICE_FAILURE",
+                    "details": [{ "type": "APPLICATION" }],
+                    "message": "internal server error",
+                  }
+  /v1/profile/{id}/clinical:
+    get:
+      tags:
+        - clinical
+      summary: Get Clinical Data
+      description: >
+        Retrieves clinical data for a user based on their unique identifier.
+        This includes claims history and other clinical opportunities.
+      operationId: get-clinical-data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/clinical"
+              example:
+                {
+                  "claimsHistory":
+                    [
+                      {
+                        "id": "claim-1",
+                        "claimDecision": "Approved",
+                        "claimOutcome": "Complete",
+                        "billedTotal": 100.0,
+                        "coveredTotal": 80.0,
+                        "memberLiabilityTotal": 20.0,
+                        "remainingMemberLiabilityTotal": 10.0,
+                        "appliedToDeductibleTotal": 5.0,
+                        "memberCoInsuranceTotal": 15.0,
+                        "memberCopayTotal": 10.0,
+                        "paymentDate": "2025-01-01",
+                        "autoPayment":
+                          [{ "accountType": "HSA", "amountPaid": 50.0 }],
+                        "instaMedPayment": 30.0,
+                        "providerInstaMedRegistered": "Registered",
+                      },
+                    ],
+                }
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "BAD_REQUEST",
+                  "details": [{ "type": "APPLICATION" }],
+                  "message": "failed to retrieve authorization token: failed to get parameter value for /Digexp/dev/auth/util/pbc-personalization-claims-consumer-output: operation error SSM: GetParameter, https response error StatusCode: 400, RequestID: f16c3477-76dc-466b-a0ff-a8e807a07c84, api error ExpiredTokenException: The security token included in the request is expired",
+                }
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "SERVICE_FAILURE",
+                  "message": "An unexpected error occurred.",
+                }
+  /v1/profile/{id}/engagement:
+    get:
+      tags:
+        - engagement
+      summary: Get Engagement Data
+      description: >
+        Retrieves engagement data for a user based on their unique identifier.
+        This includes engagement history and other relevant data.
+      operationId: get-engagement-data
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique identifier for the user.
+          schema:
+            type: string
+        - name: primaryUserIdType
+          description: Type of the primary identifier, e.g. ssoId
+          required: false
+          explode: false
+          in: query
+          schema:
+            default: ssoId
+            description: Type of the primary identifier.
+            enum:
+              - ssoId
+              - memberId
+              - personResourceId
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/engagement"
+              example:
+                {
+                  "modality_preference":
+                    [
+                      {
+                        "preferenceType": "PREFERRED_PHONE_NUMBER",
+                        "preferencesAttributes":
+                          [
+                            {
+                              "contactType": "C",
+                              "contactValue": "5129876501",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-03-31T02:48:19.113",
+                              "operatorId": "strategic-profile",
+                            },
+                            {
+                              "contactType": "C",
+                              "contactValue": "5129876600",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-02T00:15:05.609",
+                              "operatorId": "MYCIGNA",
+                            },
+                          ],
+                      },
+                      {
+                        "preferenceType": "PREFERRED_EMAIL",
+                        "preferencesAttributes":
+                          [
+                            {
+                              "contactType": "O",
+                              "contactValue": "test41Consent@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-04T19:39:39.700",
+                              "operatorId": "MYCIGNA",
+                            },
+                            {
+                              "contactType": "O",
+                              "contactValue": "monetize@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-15T02:42:21.147",
+                              "operatorId": "MYCIGNA",
+                            },
+                            {
+                              "contactType": "O",
+                              "contactValue": "deepika.shanmugam2@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-16T18:37:53.848",
+                              "operatorId": "MYCIGNA",
+                            },
+                            {
+                              "contactType": "O",
+                              "contactValue": "test40Consent@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-04T19:37:29.916",
+                              "operatorId": "MYCIGNA",
+                            },
+                            {
+                              "contactType": "O",
+                              "contactValue": "test31Consent@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-04T19:36:24.309",
+                              "operatorId": "MYCIGNA",
+                            },
+                          ],
+                      },
+                      {
+                        "preferenceType": "SECURITY_EMAIL",
+                        "preferencesAttributes":
+                          [
+                            {
+                              "contactType": "O",
+                              "contactValue": "evicorepa3@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-04T19:39:39.700",
+                              "operatorId": "MYCIGNA",
+                            },
+                          ],
+                      },
+                      {
+                        "preferenceType": "WEBREG_EMAIL",
+                        "preferencesAttributes":
+                          [
+                            {
+                              "contactType": "O",
+                              "contactValue": "krishna.keshri@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2023-06-11T14:40:18.114",
+                              "operatorId": "MYCIGNA",
+                              "verificationStatusCode": "V",
+                            },
+                          ],
+                      },
+                      {
+                        "preferenceType": "HEV_REMINDER",
+                        "preferencesAttributes":
+                          [
+                            {
+                              "contactType": "O",
+                              "contactValue": "evicorepa3@cigna.com",
+                              "status": "Active",
+                              "channelCode": "MYCIGNA",
+                              "changeTimestamp": "2025-04-04T15:39:40.036",
+                              "operatorId": "MYCIGNA",
+                            },
+                          ],
+                      },
+                    ],
+                }
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "BAD_REQUEST",
+                  "details": [{ "type": "APPLICATION" }],
+                  "message": "failed to retrieve authorization token",
+                }
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+              example:
+                {
+                  "code": "SERVICE_FAILURE",
+                  "message": "An unexpected error occurred.",
+                }
